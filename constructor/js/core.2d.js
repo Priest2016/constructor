@@ -22,12 +22,14 @@ var Vertex2D = (function () {
 
 	// выделяем область размером 20х20 с центром в точке {x,y} для отслеживания выделения точки
 	Vertex2D.prototype.setSelectedPoints = function () {
+		this.selectedPoints = [];
+
 		var i;
 		var j;
 
-		for (i=this.x-10; i<this.x+10; i++){
-			for (j=this.y-10; j<this.y+10; j++) {
-				this.selectedPoints[this.selectedPoints.lenght] = [i, j];
+		for (i=this.x-20; i<this.x+20; i++){
+			for (j=this.y-20; j<this.y+20; j++) {
+				this.selectedPoints.push([i, j]);
 			}
 		}
 	};
@@ -137,6 +139,8 @@ var Edge2D = (function () {
 	 Так же как и для Vertex2D область выделения имеет размеры 20х20 с координатами {x, y}
 	 в точке являющейся центром отрезка */
 	Edge2D.prototype.setSelectedPoints = function () {
+		this.selectedPoints = [];
+
 		var i;
 		var j;
 
@@ -146,13 +150,13 @@ var Edge2D = (function () {
 
 		for (i=center.getX()-10; i<center.getX()+10; i++) {
 			for (j=center.getY()-10; j<center.getY()+10; j++) {
-				this.selectedPoints[this.selectedPoints.lenght] = [i, j];
+				this.selectedPoints.push([i, j]);
 			}
 		}
 	};
 
 	// Получаем длину отрезка
-	Edge2D.prototype.getLenght = function () {
+	Edge2D.prototype.getlength = function () {
 		var d;
         var dSqrt;
 
@@ -269,12 +273,15 @@ var Polygon2D = (function () {
 		this.draging = false;
 
 		this.selectedPoints = [];
+		this.setSelectedPoints();
 	};
 
 	/* Получаем область для выделения полигона
 	   Достраиваем полигон до прямоугольника
 	   Берем центр, и устанавливаем область выделения 20х20 */
 	Polygon2D.prototype.setSelectedPoints = function () {
+		this.selectedPoints = [];
+		
 		var centerPoint = this.getCenter();
 
 		var i;
@@ -282,7 +289,7 @@ var Polygon2D = (function () {
 
 		for (i=centerPoint.getX()-10; i<centerPoint.getX()+10; i++) {
 			for (j=centerPoint.getY()-10; j<centerPoint.getY()+10; j++) {
-				this.selectedPoints[this.selectedPoints.lenght] = [i, j];
+				this.selectedPoints.push([i, j]);
 			}
 		}
 	};
@@ -290,33 +297,15 @@ var Polygon2D = (function () {
 	// Получаем центр полигона, достраивая его до прямоугольника
 	Polygon2D.prototype.getCenter = function () {
 		var i;
-
-		minX = 1000;
-		minY = 1000;
-		maxX = 0;
-		maxY = 0;
-
-		for (i=0; i<this.points.lenght; i++) {
-			var point = this.points[i];
-
-			if (point.getX() < minX) {
-				minX = point.getX();
-			}
-
-			if (point.getY() < minY) {
-				minY = point.getY();
-			}
-
-			if (point.getX() > maxX) {
-				maxX = point.getX();
-			}
-
-			if (point.getY() > maxY) {
-				maxY = point.getY();
-			}
+		var xSumm = 0;
+		var ySumm = 0;
+		
+		for (i=0;i<this.points.length; i++) {
+			xSumm += this.points[i].getX();
+			ySumm += this.points[i].getY();
 		}
 
-		centerPosition = [Math.round((maxX - minX) / 2), Math.round((maxY - minY) / 2)];
+		var centerPosition = [Math.round(xSumm / this.points.length), Math.round(ySumm / this.points.length)];
 
 		return new Vertex2D(centerPosition[0], centerPosition[1]);
 	};
@@ -435,12 +424,219 @@ var Scene2D = (function () {
 
 		this.mouseX = 0;
 		this.mouseY = 0;
+
+		this.canvas.onclick = onclickHandler;
+		this.canvas.onmousemove = mouseMoveHandler;
 	}
 
+	Scene2D.prototype.coordinatesInSelectionZone = function (_x, _y) {
+		var i;
+
+		for (i=0; i<this.vertexesCount; i++) {
+			var selectionZone = this.vertexes[i].selectedPoints;
+
+			var begin = selectionZone[0];
+			var end = selectionZone[selectionZone.length-1];
+
+			if (_x > begin[0] || _x == begin[0]) {
+				if (_x < end[0] || _x == end[0]) {
+					if (_y > begin[1] || _y == begin[1]) {
+						if (_y < end[1] || _y == end[1]) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+
+		for (i=0; i<this.edgesCount; i++) {
+			var selectionZone = this.edges[i].selectedPoints;
+
+			var begin = selectionZone[0];
+			var end = selectionZone[selectionZone.length-1];
+
+			if (_x > begin[0] || _x == begin[0]) {
+				if (_x < end[0] || _x == end[0]) {
+					if (_y > begin[1] || _y == begin[1]) {
+						if (_y < end[1] || _y == end[1]) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+
+		for (i=0; i<this.polygonsCount; i++) {
+			var selectionZone = this.polygons[i].selectedPoints;
+
+			var begin = selectionZone[0];
+			var end = selectionZone[selectionZone.length-1];
+
+			if (_x > begin[0] || _x == begin[0]) {
+				if (_x < end[0] || _x == end[0]) {
+					if (_y > begin[1] || _y == begin[1]) {
+						if (_y < end[1] || _y == end[1]) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+
+		return false;
+	};
+
+	Scene2D.prototype.objectTypeForSelectionZoneOnCoordinates = function(_x, _y) {
+		var i;
+
+		for (i=0; i<this.polygonsCount; i++) {
+			var selectionZone = this.polygons[i].selectedPoints;
+
+			var begin = selectionZone[0];
+			var end = selectionZone[selectionZone.length-1];
+
+			if (_x > begin[0] || _x == begin[0]) {
+				if (_x < end[0] || _x == end[0]) {
+					if (_y > begin[1] || _y == begin[1]) {
+						if (_y < end[1] || _y == end[1]) {
+							return "P";
+						}
+					}
+				}
+			}
+		}
+
+		for (i=0; i<this.edgesCount; i++) {
+			var selectionZone = this.edges[i].selectedPoints;
+
+			var begin = selectionZone[0];
+			var end = selectionZone[selectionZone.length-1];
+
+			if (_x > begin[0] || _x == begin[0]) {
+				if (_x < end[0] || _x == end[0]) {
+					if (_y > begin[1] || _y == begin[1]) {
+						if (_y < end[1] || _y == end[1]) {
+							return "E";
+						}
+					}
+				}
+			}
+		}
+
+		for (i=0; i<this.vertexesCount; i++) {
+			var selectionZone = this.vertexes[i].selectedPoints;
+
+			var begin = selectionZone[0];
+			var end = selectionZone[selectionZone.length-1];
+
+			if (_x > begin[0] || _x == begin[0]) {
+				if (_x < end[0] || _x == end[0]) {
+					if (_y > begin[1] || _y == begin[1]) {
+						if (_y < end[1] || _y == end[1]) {
+							return "V";
+						}
+					}
+				}
+			}
+		}
+
+		return "EM";	
+	};
+
+	Scene2D.prototype.getObjectPositionInSelectionZoneOnCoordinates = function (_x, _y) {
+		var i;
+
+		for (i=0; i<this.polygonsCount; i++) {
+			var selectionZone = this.polygons[i].selectedPoints;
+
+			var begin = selectionZone[0];
+			var end = selectionZone[selectionZone.length-1];
+
+			if (_x > begin[0] || _x == begin[0]) {
+				if (_x < end[0] || _x == end[0]) {
+					if (_y > begin[1] || _y == begin[1]) {
+						if (_y < end[1] || _y == end[1]) {
+							return i;
+						}
+					}
+				}
+			}
+		}
+
+		for (i=0; i<this.edgesCount; i++) {
+			var selectionZone = this.edges[i].selectedPoints;
+
+			var begin = selectionZone[0];
+			var end = selectionZone[selectionZone.length-1];
+
+			if (_x > begin[0] || _x == begin[0]) {
+				if (_x < end[0] || _x == end[0]) {
+					if (_y > begin[1] || _y == begin[1]) {
+						if (_y < end[1] || _y == end[1]) {
+							return i;
+						}
+					}
+				}
+			}
+		}
+
+		for (i=0; i<this.vertexesCount; i++) {
+			var selectionZone = this.vertexes[i].selectedPoints;
+
+			var begin = selectionZone[0];
+			var end = selectionZone[selectionZone.length-1];
+
+			if (_x > begin[0] || _x == begin[0]) {
+				if (_x < end[0] || _x == end[0]) {
+					if (_y > begin[1] || _y == begin[1]) {
+						if (_y < end[1] || _y == end[1]) {
+							return i;
+						}
+					}
+				}
+			}
+		}
+
+		return -1;	
+	};
+
+	Scene2D.prototype.changeObjectSelectionStatus = function (_objectType, _objectPosition) {
+		this.disableAllSelected();
+		this.disableAllDraging();
+		if (_objectType == "P") {
+			if (_objectPosition < this.polygonsCount) {
+				if (this.polygons[_objectPosition].getSelected()) {
+					this.polygons[_objectPosition].disableSelected();
+				} else {
+					this.polygons[_objectPosition].enableSelected();
+				}
+			}
+		} else if (_objectType == "E") {
+			if (_objectPosition < this.edgesCount) {
+				if (this.edges[_objectPosition].getSelected()) {
+					this.edges[_objectPosition].disableSelected();
+				} else {
+					this.edges[_objectPosition].enableSelected();
+				}
+			}
+		} else if (_objectType == "V") {
+			if (_objectPosition < this.vertexesCount) {
+				if (this.vertexes[_objectPosition].getSelected()) {
+					this.vertexes[_objectPosition].disableSelected();
+				} else {
+					this.vertexes[_objectPosition].enableSelected();
+				}
+			}
+		}
+
+		this.Run();
+	};
+
 	Scene2D.prototype.addVertex = function (_x, _y) {
+		this.disableAllSelected();
+		this.disableAllDraging();
 		this.vertexes.push(new Vertex2D(_x, _y));
 		this.vertexesCount += 1;
-		// this.vertexes[this.vertexes.lenght] = new Vertex2D(_x, _y);
 	};
 
 	/* Сначала добавляются точки для отрезка
@@ -448,6 +644,9 @@ var Scene2D = (function () {
 	   Таким образом, работая с точкой из vertexes к которой привязан отрезок, мы сразу
 	   редактируем его */
 	Scene2D.prototype.addEdge = function (_begin, _end) {
+		this.disableAllSelected();
+		this.disableAllDraging();
+
 		this.addVertex(_begin[0], _begin[1]);
 		this.addVertex(_end[0], _end[1]);
 
@@ -456,37 +655,40 @@ var Scene2D = (function () {
 								   this.vertexesCount-2,
 								   this.vertexesCount-1));
 		this.edgesCount += 1;
-
-		// this.edges[this.edges.lenght] = new Edge2D(this.vertexes[this.vertexes.lenght-2],
-		// 										   this.vertexes[this.vertexes.lenght-1],
-		// 										   this.vertexes.lenght-2,
-		// 										   this.vertexes.lenght-1);
 	};
 
 	/* Создаются точки, которые в последствии передаются в конструктор
 	   Таким образом редактируя ранее созданные точки,
 	   мы сразу редактируем полигон */
 	Scene2D.prototype.addPolygon = function (_points) {
+		this.disableAllSelected();
+		this.disableAllDraging();
+
 		var i;
 		var vertexesStartPosition = this.vertexesCount;
 		var vertexes = [];
 		var vertexesPositions = [];
 
-		for (i=0; i<_points; i++) {
+		for (i=0; i<_points.length; i++) {
 			var point = _points[i];
 
 			this.addVertex(point[0], point[1]);
 		}
 
 		for (i=vertexesStartPosition; i<this.vertexesCount-1; i++) {
-			this.edges[this.edgesCount] = new Edge2D(this.vertexes[i], this.vertexes[i+1], i, i+1);
-			vertexes[vertexes.lenght] = this.vertexes[i];
-			vertexesPositions[vertexesPositions.lenght] = i;
+			this.edges.push(new Edge2D(this.vertexes[i], this.vertexes[i+1], i, i+1));
+			this.edgesCount += 1;
+			vertexes.push(this.vertexes[i]);
+			vertexesPositions.push(i);
 		}
-		vertexes[vertexes.lenght] = this.vertexes[this.vertexesCount-1];
-		vertexesPositions[vertexesPositions.lenght] = this.vertexes.lenght-1;
 
-		this.polygons[this.polygonsCount] = new Polygon2D(vertexes, vertexesPositions);
+		this.edges.push(new Edge2D(this.vertexes[this.vertexesCount-1], this.vertexes[vertexesStartPosition],
+								   this.vertexesCount-1, vertexesStartPosition));
+		this.edgesCount += 1;
+		vertexes.push(this.vertexes[this.vertexesCount-1]);
+		vertexesPositions.push(this.vertexesCount-1);
+
+		this.polygons.push(new Polygon2D(vertexes, vertexesPositions));
 		this.polygonsCount += 1;
 	};
 
@@ -506,15 +708,15 @@ var Scene2D = (function () {
 	Scene2D.prototype.disableAllSelected = function () {
 		var i;
 
-		for (i=0; i<this.vertexes.lenght; i++) {
+		for (i=0; i<this.vertexesCount; i++) {
 			this.vertexes[i].disableSelected();
 		}
 
-		for (i=0; i<this.edges.lenght; i++) {
+		for (i=0; i<this.edgesCount; i++) {
 			this.edges[i].disableSelected();
 		}
 
-		for (i=0; i<this.polygons.lenght; i++) {
+		for (i=0; i<this.polygonsCount; i++) {
 			this.polygons[i].disableSelected();
 		}		
 	};
@@ -523,15 +725,15 @@ var Scene2D = (function () {
 	Scene2D.prototype.disableAllDraging = function () {
 		var i;
 
-		for (i=0; i<this.vertexes.lenght; i++) {
+		for (i=0; i<this.vertexes.length; i++) {
 			this.vertexes[i].disableDraging();
 		}
 
-		for (i=0; i<this.edges.lenght; i++) {
+		for (i=0; i<this.edges.length; i++) {
 			this.edges[i].disableDraging();
 		}
 
-		for (i=0; i<this.polygons.lenght; i++) {
+		for (i=0; i<this.polygons.length; i++) {
 			this.polygons[i].disableDraging();
 		}
 	};
@@ -551,22 +753,23 @@ var Scene2D = (function () {
 
 	// получаем данные о типе выделенного объекта
 	Scene2D.prototype.getSelectedObjectType = function () {
+		var objectType = "";
 		if (this.getSelectionPolygonsStatus()) {
-			return "P";
+			objectType = "P";
 		} else if (this.getSelectionEdgesStatus()) {
-			return "E";
-		} else if (this.getSelectionPolygonsStatus()) {
-			return "V";
+			objectType = "E";
+		} else if (this.getSelectionVertexesStatus()) {
+			objectType = "V";
 		}
 
-		return false;
+		return objectType;
 	};
 
 	// получаем данные о том, есть ли на сцене выделенные точки
 	Scene2D.prototype.getSelectionVertexesStatus = function () {
 		var i;
 
-		for (i=0; i<this.vertexes.lenght; i++) {
+		for (i=0; i<this.vertexes.length; i++) {
 			if (this.vertexes[i].getSelected()) {
 				return true;
 			}
@@ -579,8 +782,8 @@ var Scene2D = (function () {
 	Scene2D.prototype.getSelectionEdgesStatus = function () {
 		var i;
 
-		for (i=0; i<this.vertexes.lenght; i++) {
-			if (this.vertexes[i].getSelected()) {
+		for (i=0; i<this.edges.length; i++) {
+			if (this.edges[i].getSelected()) {
 				return true;
 			}
 		}
@@ -592,8 +795,8 @@ var Scene2D = (function () {
 	Scene2D.prototype.getSelectionPolygonsStatus = function () {
 		var i;
 
-		for (i=0; i<this.vertexes.lenght; i++) {
-			if (this.vertexes[i].getSelected()) {
+		for (i=0; i<this.polygons.length; i++) {
+			if (this.polygons[i].getSelected()) {
 				return true;
 			}
 		}
@@ -607,9 +810,9 @@ var Scene2D = (function () {
 			var i;
 			var selectionVertexes = [];
 
-			for (i=0; i<this.vertexes.lenght; i++) {
+			for (i=0; i<this.vertexes.length; i++) {
 				if (this.vertexes[i].getSelected()) {
-					selectionVertexes[selectionVertexes.lenght] = i;
+					selectionVertexes[selectionVertexes.length] = i;
 				}
 			}
 
@@ -625,9 +828,9 @@ var Scene2D = (function () {
 			var i;
 			var selectionEdges = [];
 
-			for (i=0; i<this.edges.lenght; i++) {
+			for (i=0; i<this.edges.length; i++) {
 				if (this.edges[i].getSelected()) {
-					selectionEdges[selectionEdges.lenght] = i;
+					selectionEdges[selectionEdges.length] = i;
 				}
 			}
 
@@ -643,9 +846,9 @@ var Scene2D = (function () {
 			var i;
 			var selectionPolygons = [];
 
-			for (i=0; i<this.polygons.lenght; i++) {
+			for (i=0; i<this.polygons.length; i++) {
 				if (this.polygons[i].getSelected()) {
-					selectionPolygons[selectionPolygons.lenght] = i;
+					selectionPolygons[selectionPolygons.length] = i;
 				}
 			}
 
@@ -670,7 +873,7 @@ var Scene2D = (function () {
 			return "P";
 		} else if (this.getDragingEdgesStatus()) {
 			return "E";
-		} else if (this.getDragingPolygonsStatus()) {
+		} else if (this.getDragingVertexesStatus()) {
 			return "V";
 		}
 
@@ -681,8 +884,8 @@ var Scene2D = (function () {
 	Scene2D.prototype.getDragingVertexesStatus = function () {
 		var i;
 
-		for (i=0; i<this.vertexes.lenght; i++) {
-			if (this.vertexes[i].getDra()) {
+		for (i=0; i<this.vertexes.length; i++) {
+			if (this.vertexes[i].getDraging()) {
 				return true;
 			}
 		}
@@ -694,8 +897,8 @@ var Scene2D = (function () {
 	Scene2D.prototype.getDragingEdgesStatus = function () {
 		var i;
 
-		for (i=0; i<this.edges.lenght; i++) {
-			if (this.edges[i].getDra()) {
+		for (i=0; i<this.edges.length; i++) {
+			if (this.edges[i].getDraging()) {
 				return true;
 			}
 		}
@@ -707,8 +910,8 @@ var Scene2D = (function () {
 	Scene2D.prototype.getDragingPolygonsStatus = function () {
 		var i;
 
-		for (i=0; i<this.polygons.lenght; i++) {
-			if (this.polygons[i].getDra()) {
+		for (i=0; i<this.polygons.length; i++) {
+			if (this.polygons[i].getDraging()) {
 				return true;
 			}
 		}
@@ -722,9 +925,9 @@ var Scene2D = (function () {
 			var i;
 			var dragingVertexes = [];
 
-			for (i=0; i<this.vertexes.lenght; i++) {
+			for (i=0; i<this.vertexes.length; i++) {
 				if (this.vertexes[i].getDraging()) {
-					dragingVertexes[dragingVertexes.lenght] = i;
+					dragingVertexes[dragingVertexes.length] = i;
 				}
 			}
 
@@ -736,13 +939,13 @@ var Scene2D = (function () {
 
 	// возвращает массив позиций передвигаемых отрезков
 	Scene2D.prototype.getDragingEdgesNumbers = function () {
-		if (this.getDragEdgesStatus()) {
+		if (this.getDragingEdgesStatus()) {
 			var i;
 			var dragingEdges = [];
 
-			for (i=0; i<this.edges.lenght; i++) {
+			for (i=0; i<this.edges.length; i++) {
 				if (this.edges[i].getDraging()) {
-					dragingVertexes[dragingEdges.lenght] = i;
+					dragingEdges[dragingEdges.length] = i;
 				}
 			}
 
@@ -758,9 +961,9 @@ var Scene2D = (function () {
 			var i;
 			var dragingPolygons = [];
 
-			for (i=0; i<this.polygons.lenght; i++) {
+			for (i=0; i<this.polygons.length; i++) {
 				if (this.polygons[i].getDraging()) {
-					dragingPolygons[dragingPolygons.lenght] = i;
+					dragingPolygons[dragingPolygons.length] = i;
 				}
 			}
 
@@ -772,89 +975,90 @@ var Scene2D = (function () {
 
 	// ну тут по названиям понятно, практически дубли методов первых трех классов
 	Scene2D.prototype.enableSelectionVertex = function (_vertexPosition) {
-		if (_vertexPosition < this.vertexes.lenght) {
+		if (_vertexPosition < this.vertexes.length) {
 			this.vertexes[_vertexPosition].enableSelected();
 		}
 	};
 
 	Scene2D.prototype.enableSelectionEdge = function (_edgePosition) {
-		if (_edgePosition < this.edges.lenght) {
+		if (_edgePosition < this.edges.length) {
 			this.edges[_edgePosition].enableSelected();
 		}
 	};
 
 	Scene2D.prototype.enableSelectionPolygon = function (_polygonPosition) {
-		if (_polygonPosition < this.polygons.lenght) {
+		if (_polygonPosition < this.polygons.length) {
 			this.polygons[_polygonPosition].enableSelected();
 		}
 	};
 
 	Scene2D.prototype.enableDragingVertex = function (_vertexPosition) {
-		if (_vertexPosition < this.vertexes.lenght) {
+		if (_vertexPosition < this.vertexes.length) {
 			this.vertexes[_vertexPosition].enableDraging();
 		}
 	};
 
 	Scene2D.prototype.enableDragingEdge = function (_edgePosition) {
-		if (_edgePosition < this.edges.lenght) {
+		if (_edgePosition < this.edges.length) {
 			this.edges[_edgePosition].enableDraging();
 		}
 	};
 
 	Scene2D.prototype.enableDragingPolygon = function (_polygonPosition) {
-		if (_polygonPosition < this.polygons.lenght) {
+		if (_polygonPosition < this.polygons.length) {
 			this.polygons[_polygonPosition].enableDraging();
 		}
 	};
 
 	Scene2D.prototype.disableSelectionVertex = function (_vertexPosition) {
-		if (_vertexPosition < this.vertexes.lenght) {
+		if (_vertexPosition < this.vertexes.length) {
 			this.vertexes[_vertexPosition].disableSelected();
 		}
 	};
 
 	Scene2D.prototype.disableSelectionEdge = function (_edgePosition) {
-		if (_edgePosition < this.edges.lenght) {
+		if (_edgePosition < this.edges.length) {
 			this.edges[_edgePosition].disableSelected();
 		}
 	};
 
 	Scene2D.prototype.disableSelectionPolygon = function (_polygonPosition) {
-		if (_polygonPosition < this.polygons.lenght) {
+		if (_polygonPosition < this.polygons.length) {
 			this.polygons[_polygonPosition].disableSelected();
 		}
 	};
 
 	Scene2D.prototype.disableDragingVertex = function (_vertexPosition) {
-		if (_vertexPosition < this.vertexes.lenght) {
+		if (_vertexPosition < this.vertexes.length) {
 			this.vertexes[_vertexPosition].disableDraging();
 		}
 	};
 
 	Scene2D.prototype.disableDragingEdge = function (_edgePosition) {
-		if (_edgePosition < this.edges.lenght) {
+		if (_edgePosition < this.edges.length) {
 			this.edges[_edgePosition].disableDraging();
 		}
 
 	};
 
 	Scene2D.prototype.disableDragingPolygon = function (_polygonPosition) {
-		if (_polygonPosition < this.polygons.lenght) {
+		if (_polygonPosition < this.polygons.length) {
 			this.polygons[_polygonPosition].disableDraging();
 		}
 	};
 
 	// перемещаем вершину в указанные координаты
 	Scene2D.prototype.moveVertex = function (_vertexPosition, _x, _y) {
-		if (_vertexPosition < this.vertexes.lenght) {
+		if (_vertexPosition < this.vertexes.length) {
 			this.vertexes[_vertexPosition].setX(_x);
 			this.vertexes[_vertexPosition].setY(_y);
+			this.setSelectedPoints();
 		}
 	};
 
 	// перемещаем центр отрезка в указанные координаты. Так же перемещаем крайние точки относительно центра
 	Scene2D.prototype.moveEdge = function (_edgePosition, _x, _y) {
-		if (_edgePosition < this.edges.lenght) {
+		if (_edgePosition < this.edges.length) {
 			var beginRelation = [this.edges[_edgePosition].getCenter().getX()-this.edges[_edgePosition].getBegin().getX(),
 								 this.edges[_edgePosition].getCenter().getY()-this.edges[_edgePosition].getBegin().getY()];
 			var endRelation = [this.edges[_edgePosition].getCenter().getX()-this.edges[_edgePosition].getEnd().getX(),
@@ -862,13 +1066,14 @@ var Scene2D = (function () {
 
 			this.moveVertex(this.edges[_edgePosition].getBeginPosition(), _x-beginRelation[0], _y-beginRelation[1]);
 			this.moveVertex(this.edges[_edgePosition].getEndPosition(), _x-endRelation[0], _y-endRelation[1]);
+			this.setSelectedPoints();
 		}
 	};
 
 	// перемещаем цент полигона в указанные координаты. Так же перемещаем точки относительно центра
 	Scene2D.prototype.movePolygon = function (_polygonPosition, _x, _y) {
-		if (_pointsPosition < this.polygons.lenght) {
-			var polygon = this.polygons[_pointsPosition];
+		if (_polygonPosition < this.polygons.length) {
+			var polygon = this.polygons[_polygonPosition];
 			var polygonCenter = polygon.getCenter();
 			var points = polygon.getPoints();
 			var pointsPositions = polygon.getPointsPositions();
@@ -876,18 +1081,35 @@ var Scene2D = (function () {
 			var i;
 			var relations = [];
 
-			for (i=0; i<points.lenght; i++) {
+			for (i=0; i<points.length; i++) {
 				var point = points[i];
 
-				relations[relations.lenght] = [Math.round(polygonCenter.getX() - point.getX()), 
+				relations[relations.length] = [Math.round(polygonCenter.getX() - point.getX()), 
 											   Math.round(polygonCenter.getY() - point.getY())];
 			}
 
-			for (i=0; i<pointsPositions.lenght; i++) {
+			for (i=0; i<pointsPositions.length; i++) {
 				var relation = relations[i];
 
 				this.moveVertex(pointsPositions[i], _x - relation[0], _y - relation[1]);
 			}
+			this.setSelectedPoints();
+		}
+	};
+
+	Scene2D.prototype.setSelectedPoints = function () {
+		var i;
+
+		for (i=0; i<this.vertexes.length; i++) {
+			this.vertexes[i].setSelectedPoints();
+		}
+
+		for (i=0; i<this.edges.length; i++) {
+			this.edges[i].setSelectedPoints();
+		}
+
+		for (i=0; i<this.polygons.length; i++) {
+			this.polygons[i].setSelectedPoints();
 		}
 	};
 
@@ -976,6 +1198,13 @@ var Scene2D = (function () {
 		this.context.lineTo(end.getX(), end.getY());
 
 		this.context.stroke();
+
+		if (_edge.getSelected()) {
+			this.context.fillStyle = "#f0f";
+			this.context.globalAlpha = 0.5;
+			this.context.fillRect(_edge.getCenter().getX()-5, _edge.getCenter().getY()-5, 10, 10);
+			this.context.globalAlpha = 1.0;
+		}
 	};
 
 	Scene2D.prototype.drawPolygon = function (_polygon) {
@@ -983,13 +1212,21 @@ var Scene2D = (function () {
 
 		var i;
 
-		for (i=0; i<points.lenght-1; i++) {
+		for (i=0; i<points.length-1; i++) {
 			var begin = points[i];
 			var end = points[i+1];
 
 			var edge = new Edge2D(begin, end, -1, -1);
+			edge.disableSelected();
 
 			this.drawEdge(edge);
+			
+			if (_polygon.getSelected()) {
+				this.context.fillStyle = "#0ff";
+				this.context.globalAlpha = 0.5;
+				this.context.fillRect(_polygon.getCenter().getX()-5, _polygon.getCenter().getY()-5, 10, 10);
+				this.context.globalAlpha = 1.0;
+			}
 		}
 	};
 
@@ -1040,9 +1277,97 @@ var Scene2D = (function () {
 	return Scene2D;
 }());
 
+function onclickHandler(event) {
+	var x = event.clientX;
+	var y = event.clientY;
+	onclickEventer(x, y); 
+}
+
+function mouseMoveHandler(event) {
+	if (scene.getDragingObjectsStatus()) {
+		var objectType = scene.getDragingObjectType();
+
+		var i;
+		var positions = -1;
+
+		if (objectType == "P") {
+			positions = scene.getDragingPolygonsNumbers();
+
+			for (i=0; i<positions.length; i++) {
+				scene.movePolygon(positions[i], event.clientX, event.clientY);
+			}
+		} else if (objectType == "E") {
+			positions = scene.getDragingEdgesNumbers();
+
+			for (i=0; i<positions.length; i++) {
+				scene.moveEdge(positions[i], event.clientX, event.clientY);
+			}
+		} else if (objectType == "V") {
+			positions = scene.getDragingVertexesNumbers();
+			
+			for (i=0; i<positions.length; i++) {
+				scene.moveVertex(positions[i], event.clientX, event.clientY);
+			}
+		}
+	}
+
+	scene.Run();
+}
+
+window.onkeyup = KeyboardHandler;
+
 var scene = new Scene2D('canvas', 800, 600);
 scene.setBackground("#fff");
-scene.addVertex(50, 50);
-scene.addVertex(50, 500);
-scene.addVertex(50, 500);
+scene.addPolygon([[20, 10], [100, 10], [250, 100], [10, 100]]);
+scene.disableAllSelected();
 scene.Run();
+
+function onclickEventer (x, y) {
+	if (!scene.getDragingObjectsStatus()) {
+		var inSelectionZone = scene.coordinatesInSelectionZone(x, y);
+
+		if (inSelectionZone) {
+			var objType = scene.objectTypeForSelectionZoneOnCoordinates(x, y);
+
+			var objPosition = scene.getObjectPositionInSelectionZoneOnCoordinates(x, y);
+			scene.changeObjectSelectionStatus(objType, objPosition);
+		} else {
+			scene.disableAllSelected();
+		}
+	} else {
+		scene.disableAllDraging();
+		scene.setSelectedPoints();
+	}
+}
+
+function KeyboardHandler(event) {
+	var key = String.fromCharCode(event.keyCode || event.charCode);
+
+	if (key == "G") {
+		if (scene.getSelectionObjectsStatus()) {
+			var objectType = scene.getSelectedObjectType();
+			
+			var i;
+			var positions = -1;
+			if (objectType == "P") {
+				positions = scene.getSelectionPolygonsNumbers();
+
+				for (i=0; i<positions.length; i++) {
+					scene.enableDragingPolygon(positions[i]);
+				}
+			} else if (objectType == "E") {
+				positions = scene.getSelectionEdgesNumbers();
+
+				for (i=0; i<positions.length; i++) {
+					scene.enableDragingEdge(positions[i]);
+				}
+			} else if (objectType ==  "V") {
+				positions = scene.getSelectionVertexesNumbers();
+
+				for (i=0; i<positions.length; i++) {
+					scene.enableDragingVertex(positions[i]);
+				}
+			}
+		}
+	}
+}
