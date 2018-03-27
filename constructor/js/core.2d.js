@@ -1,4 +1,14 @@
+/*
+ * class      Vertex2D
+ * param      {number}    x           {x coordinate on canvas}
+ * param      {number}    y           {y coordinate on canvas}
+ */
 var Vertex2D = (function () {
+	/*
+	 * constructor Vertex2D
+	 * param      {number}    _x      {x coordinate on canvas}
+	 * param      {number}    _y      {y coordinate on canvas}
+	 */
 	function Vertex2D (_x, _y){
 		this.x = _x;
 		this.y = _y;
@@ -10,6 +20,7 @@ var Vertex2D = (function () {
 		this.setSelectedPoints();
 	}
 
+	// выделяем область размером 20х20 с центром в точке {x,y} для отслеживания выделения точки
 	Vertex2D.prototype.setSelectedPoints = function () {
 		var i;
 		var j;
@@ -84,7 +95,21 @@ var Vertex2D = (function () {
 	return Vertex2D;
 }());
 
+/*
+ * class      Edge2D
+ * param      {Vertex2D}    begin                      {begin point of edge}
+ * param      {Vertex2D}    end                        {end point of edge}
+ * param      {number} 	    beginPosition              {position begin point on Scene2D.vertexes}
+ * param      {number}      endPosition                {position end point on Scene2D.vertexes}
+ */
 var Edge2D = (function () {
+	/*
+	 * constructor Edge2D
+	 * param      {Vertex2D}    _begin                 {begin point of edge}
+	 * param      {Vertex2D}    _end                   {end point of edge}
+	 * param      {number}      _beginPosition         {position begin point on Scene2D.vertexes}
+	 * param      {number}      _endPosition           {position end point on Scene2D.vertexes}
+	 */
 	function Edge2D (_begin, _end, _beginPosition, _endPosition) {
 		this.begin = _begin;
 		this.end = _end;
@@ -108,6 +133,9 @@ var Edge2D = (function () {
 		this.setSelectedPoints();
 	}
 
+	/* Область выделения в центре объекта. Определена точкой.
+	 Так же как и для Vertex2D область выделения имеет размеры 20х20 с координатами {x, y}
+	 в точке являющейся центром отрезка */
 	Edge2D.prototype.setSelectedPoints = function () {
 		var i;
 		var j;
@@ -123,6 +151,7 @@ var Edge2D = (function () {
 		}
 	};
 
+	// Получаем длину отрезка
 	Edge2D.prototype.getLenght = function () {
 		var d;
         var dSqrt;
@@ -135,6 +164,7 @@ var Edge2D = (function () {
         return d;
 	};
 
+	// Получаем точку, являющуюся центром отрезка
 	Edge2D.prototype.getCenter = function () {
 		var xCenter = Math.round((this.begin.getX() + this.end.getX()) / 2);
         var yCenter = Math.round((this.begin.getY() + this.end.getY()) / 2);
@@ -220,7 +250,17 @@ var Edge2D = (function () {
 	return Edge2D;
 }());
 
+/*
+ * class      Polygon2D
+ * param      {Vertex2D[]}    points                   {points for polygon}
+ * param      {number[]}      pointsPositions          {points positions for polygon on Scene2D.vertexes}
+ */
 var Polygon2D = (function () {
+	/*
+	 * constructor Polygon2D
+	 * param      {Vertex2D[]}    _points              {points for polygon}
+	 * param      {number[]}      _pointsPositions     {points positions for polygon on Scene2D.vertexes}
+	 */
 	function Polygon2D (_points, _pointsPositions) {
 		this.points = _points;
 		this.pointsPositions = _pointsPositions;
@@ -231,9 +271,55 @@ var Polygon2D = (function () {
 		this.selectedPoints = [];
 	};
 
-	Polygon2D.prototype.setSelectedPoints = function () {};
+	/* Получаем область для выделения полигона
+	   Достраиваем полигон до прямоугольника
+	   Берем центр, и устанавливаем область выделения 20х20 */
+	Polygon2D.prototype.setSelectedPoints = function () {
+		var centerPoint = this.getCenter();
 
-	Polygon2D.prototype.getCenter = function () {};
+		var i;
+		var j;
+
+		for (i=centerPoint.getX()-10; i<centerPoint.getX()+10; i++) {
+			for (j=centerPoint.getY()-10; j<centerPoint.getY()+10; j++) {
+				this.selectedPoints[this.selectedPoints.lenght] = [i, j];
+			}
+		}
+	};
+
+	// Получаем центр полигона, достраивая его до прямоугольника
+	Polygon2D.prototype.getCenter = function () {
+		var i;
+
+		minX = 1000;
+		minY = 1000;
+		maxX = 0;
+		maxY = 0;
+
+		for (i=0; i<this.points.lenght; i++) {
+			var point = this.points[i];
+
+			if (point.getX() < minX) {
+				minX = point.getX();
+			}
+
+			if (point.getY() < minY) {
+				minY = point.getY();
+			}
+
+			if (point.getX() > maxX) {
+				maxX = point.getX();
+			}
+
+			if (point.getY() > maxY) {
+				maxY = point.getY();
+			}
+		}
+
+		centerPosition = [Math.round((maxX - minX) / 2), Math.round((maxY - minY) / 2)];
+
+		return new Vertex2D(centerPosition[0], centerPosition[1]);
+	};
 
 	Polygon2D.prototype.getPoints = function () {
 		return this.points;
@@ -298,7 +384,31 @@ var Polygon2D = (function () {
 	return Polygon2D;
 }());
 
+/*
+ * class      Scene2D
+ * param      {string}                   id                        {id for canvas element}
+ * param      {number}                   width                     {width for canvas}
+ * param      {number}                   height                    {height for canvas}
+ * param      {HTMLCanvasElement}        canvas                    {canvas element}
+ * param      {HTMLCanvasContext}        context                   {context for drawind}
+ * param      {Vertex2D[]}               vertexes                  {array of vertexes for drawing}
+ * param      {Edge2D[]}                 edges                     {array of edges for drawing}
+ * param      {Polygon2D[]}              polygons                  {array of polygons for drawing}
+ * param      {number}                   centerX                   {x point for canvas center}
+ * param      {number}                   centerY                   {y point for canvas center}
+ * param      {string}                   backgroundColor           {color for filling background}
+ * param      {string}                   strokeColor               {color for drawing}
+ * param      {string}                   selectionColor            {color for drawing selection elements}
+ * param      {number}                   mouseX                    {x point for mouse coordinates}
+ * param      {number}                   mouxeY                    {y point for mouse coordinates}
+ */
 var Scene2D = (function () {
+	/*
+	 * constructor Scene2D
+	 * param      {string}                   _id                        {id for canvas element}
+	 * param      {number}                   _width                     {width for canvas}
+	 * param      {number}                   _height                    {height for canvas}
+	 */
 	function Scene2D (_id, _width, _height) {
 		this.id = _id;
 		this.width = _width;
@@ -327,6 +437,10 @@ var Scene2D = (function () {
 		this.vertexes[this.vertexes.lenght] = new Vertex2D(_x, _y);
 	};
 
+	/* Сначала добавляются точки для отрезка
+	   А затем создается отрезок, привязанный к ранее созданным точкам
+	   Таким образом, работая с точкой из vertexes к которой привязан отрезок, мы сразу
+	   редактируем его */
 	Scene2D.prototype.addEdge = function (_begin, _end) {
 		this.addVertex(_begin[0], _begin[1]);
 		this.addVertex(_end[0], _end[1]);
@@ -337,6 +451,9 @@ var Scene2D = (function () {
 												   this.vertexes.lenght-1);
 	};
 
+	/* Создаются точки, которые в последствии передаются в конструктор
+	   Таким образом редактируя ранее созданные точки,
+	   мы сразу редактируем полигон */
 	Scene2D.prototype.addPolygon = function (_points) {
 		var i;
 		var vertexesStartPosition = this.vertexes.lenght;
@@ -372,6 +489,7 @@ var Scene2D = (function () {
 		this.selectionColor = _selectionColor;
 	};
 
+	// снимает выделение со всех объектов сцены
 	Scene2D.prototype.disableAllSelected = function () {
 		var i;
 
@@ -388,6 +506,7 @@ var Scene2D = (function () {
 		}		
 	};
 
+	// снимает режим перетаскивания со всех объектов сцены
 	Scene2D.prototype.disableAllDraging = function () {
 		var i;
 
@@ -408,6 +527,7 @@ var Scene2D = (function () {
 		return this.center;
 	};
 
+	// получаем данные о том, есть ли на сцене выделенные объекты
 	Scene2D.prototype.getSelectionObjectsStatus = function () {
 		if (this.getSelectionVertexesStatus() || this.getSelectionEdgesStatus() || this.getSelectionPolygonsStatus()) {
 			return true;
@@ -416,6 +536,7 @@ var Scene2D = (function () {
 		return false;
 	};
 
+	// получаем данные о типе выделенного объекта
 	Scene2D.prototype.getSelectedObjectType = function () {
 		if (this.getSelectionPolygonsStatus()) {
 			return "P";
@@ -428,6 +549,7 @@ var Scene2D = (function () {
 		return false;
 	};
 
+	// получаем данные о том, есть ли на сцене выделенные точки
 	Scene2D.prototype.getSelectionVertexesStatus = function () {
 		var i;
 
@@ -440,6 +562,7 @@ var Scene2D = (function () {
 		return false;
 	};
 
+	// получаем данные о том, если на сцене выделенные отрезки
 	Scene2D.prototype.getSelectionEdgesStatus = function () {
 		var i;
 
@@ -452,6 +575,7 @@ var Scene2D = (function () {
 		return false;
 	};
 
+	// получаем данные о том, есть ли на сцене выделенные полигоны
 	Scene2D.prototype.getSelectionPolygonsStatus = function () {
 		var i;
 
@@ -464,6 +588,7 @@ var Scene2D = (function () {
 		return false;
 	};
 
+	// возвращает массив позиций выделенных точек
 	Scene2D.prototype.getSelectionVertexesNumbers = function () {
 		if (this.getSelectionVertexesStatus()) {
 			var i;
@@ -481,6 +606,7 @@ var Scene2D = (function () {
 		return [];
 	};
 
+	// возвращает массив позиций выделенных отрезков
 	Scene2D.prototype.getSelectionEdgesNumbers = function () {
 		if (this.getSelectionEdgesStatus()) {
 			var i;
@@ -498,6 +624,7 @@ var Scene2D = (function () {
 		return [];
 	};
 
+	// возвращает массив позиций выделенных полигонов
 	Scene2D.prototype.getSelectionPolygonsNumbers = function () {
 		if (this.getSelectionPolygonsStatus()) {
 			var i;
@@ -515,6 +642,7 @@ var Scene2D = (function () {
 		return [];
 	};
 
+	// получаем данные о том, находятся ли на сцене объекты которые можно передвигать
 	Scene2D.prototype.getDragingObjectsStatus = function () {
 		if (this.getDragingVertexesStatus() || this.getDragingEdgesStatus() || this.getDragingPolygonsStatus()) {
 			return true;
@@ -523,6 +651,7 @@ var Scene2D = (function () {
 		return false;
 	};
 
+	// получаем тип объекта который можно передвигать
 	Scene2D.prototype.getDragingObjectType = function () {
 		if (this.getDragingPolygonsStatus()) {
 			return "P";
@@ -535,6 +664,7 @@ var Scene2D = (function () {
 		return false
 	};
 
+	// получаем данные о том, есть ли на сцене перемещаемые точки
 	Scene2D.prototype.getDragingVertexesStatus = function () {
 		var i;
 
@@ -547,6 +677,7 @@ var Scene2D = (function () {
 		return false;
 	};
 
+	// получаем данные о том, есть ли на сцене перемещаемые отрезки
 	Scene2D.prototype.getDragingEdgesStatus = function () {
 		var i;
 
@@ -559,6 +690,7 @@ var Scene2D = (function () {
 		return false;
 	};
 
+	// получаем данные о том, есть ли на сцене перемещаемые полигоны
 	Scene2D.prototype.getDragingPolygonsStatus = function () {
 		var i;
 
@@ -571,6 +703,7 @@ var Scene2D = (function () {
 		return false;
 	};
 
+	// возвращает массив позиций передвигаемых точек
 	Scene2D.prototype.getDragingVertexesNumbers = function () {
 		if (this.getDragingVertexesStatus()) {
 			var i;
@@ -588,6 +721,7 @@ var Scene2D = (function () {
 		return [];
 	};
 
+	// возвращает массив позиций передвигаемых отрезков
 	Scene2D.prototype.getDragingEdgesNumbers = function () {
 		if (this.getDragEdgesStatus()) {
 			var i;
@@ -605,6 +739,7 @@ var Scene2D = (function () {
 		return [];
 	};
 
+	// возвращает массив позиций перемещаемых полигонов
 	Scene2D.prototype.getDragingPolygonsNumbers = function () {
 		if (this.getDragingPolygonsStatus()) {
 			var i;
@@ -622,6 +757,7 @@ var Scene2D = (function () {
 		return [];
 	};
 
+	// ну тут по названиям понятно, практически дубли методов первых трех классов
 	Scene2D.prototype.enableSelectionVertex = function (_vertexPosition) {
 		if (_vertexPosition < this.vertexes.lenght) {
 			this.vertexes[_vertexPosition].enableSelected();
@@ -695,6 +831,7 @@ var Scene2D = (function () {
 		}
 	};
 
+	// перемещаем вершину в указанные координаты
 	Scene2D.prototype.moveVertex = function (_vertexPosition, _x, _y) {
 		if (_vertexPosition < this.vertexes.lenght) {
 			this.vertexes[_vertexPosition].setX(_x);
@@ -702,41 +839,188 @@ var Scene2D = (function () {
 		}
 	};
 
-	Scene2D.prototype.moveEdge = function () {};
+	// перемещаем центр отрезка в указанные координаты. Так же перемещаем крайние точки относительно центра
+	Scene2D.prototype.moveEdge = function (_edgePosition, _x, _y) {
+		if (_edgePosition < this.edges.lenght) {
+			var beginRelation = [this.edges[_edgePosition].getCenter().getX()-this.edges[_edgePosition].getBegin().getX(),
+								 this.edges[_edgePosition].getCenter().getY()-this.edges[_edgePosition].getBegin().getY()];
+			var endRelation = [this.edges[_edgePosition].getCenter().getX()-this.edges[_edgePosition].getEnd().getX(),
+							   this.edges[_edgePosition].getCenter().getY()-this.edges[_edgePosition].getEnd().getY()];
 
-	Scene2D.prototype.movePolygon = function () {};
+			this.moveVertex(this.edges[_edgePosition].getBeginPosition(), _x-beginRelation[0], _y-beginRelation[1]);
+			this.moveVertex(this.edges[_edgePosition].getEndPosition(), _x-endRelation[0], _y-endRelation[1]);
+		}
+	};
 
-	Scene2D.prototype.moveVertexes = function () {};
+	// перемещаем цент полигона в указанные координаты. Так же перемещаем точки относительно центра
+	Scene2D.prototype.movePolygon = function (_polygonPosition, _x, _y) {
+		if (_pointsPosition < this.polygons.lenght) {
+			var polygon = this.polygons[_pointsPosition];
+			var polygonCenter = polygon.getCenter();
+			var points = polygon.getPoints();
+			var pointsPositions = polygon.getPointsPositions();
+
+			var i;
+			var relations = [];
+
+			for (i=0; i<points.lenght; i++) {
+				var point = points[i];
+
+				relations[relations.lenght] = [Math.round(polygonCenter.getX() - point.getX()), 
+											   Math.round(polygonCenter.getY() - point.getY())];
+			}
+
+			for (i=0; i<pointsPositions.lenght; i++) {
+				var relation = relations[i];
+
+				this.moveVertex(pointsPositions[i], _x - relation[0], _y - relation[1]);
+			}
+		}
+	};
+
+	Scene2D.prototype.moveVertexes = function (_vertexesPositions, _x, _y) {};
 
 	Scene2D.prototype.moveEdges = function () {};
 
 	Scene2D.prototype.movePolygons = function () {};
 
-	Scene2D.prototype.clear = function () {};
+	Scene2D.prototype.clear = function () {
+		this.context.clearRect(0, 0, this.width, this.height);
+	};
 
-	Scene2D.prototype.drawUserWorkspace = function () {};
+	// тут тип высокоуровневая функция для рисования пользовательской области
+	Scene2D.prototype.drawUserWorkspace = function () {
+		this.drawBackground();
+		this.drawGrid();
+		this.drawCenter();
+	};
 
-	Scene2D.prototype.drawBackground = function () {};
+	// ну а тут по названиям понятно что куда
+	Scene2D.prototype.drawBackground = function () {
+		this.context.fillStyle = this.background;
+		this.context.fillRect(0, 0, this.width, this.height);
+	};
 
-	Scene2D.prototype.drawGrid = function () {};
+	Scene2D.prototype.drawGrid = function () {
+		var i;
 
-	Scene2D.prototype.drawCenter = function () {};
+		this.context.fillStyle = "#888";
+		this.context.globalAlpha = 0.5;
 
-	Scene2D.prototype.drawVertex = function () {};
+		for (i=0; i<this.width; i=i+10) {
+			this.context.beginPath();
 
-	Scene2D.prototype.drawEdge = function () {};
+			this.context.moveTo(i, 0);
+			this.context.lineTo(i, this.height);
 
-	Scene2D.prototype.drawPolygon = function () {};
+			this.context.stroke();
+		}
 
-	Scene2D.prototype.drawVertexes = function () {};
+		for (i=0; i<this.height; i=i+10) {
+			this.context.beginPath();
 
-	Scene2D.prototype.drawEdges = function () {};
+			this.context.moveTo(0, i);
+			this.context.lineTo(this.width, i);
 
-	Scene2D.prototype.drawPolygons = function () {};
+			this.context.stroke();
+		}
 
-	Scene2D.prototype.Run = function () {};
+		this.context.globalAlpha = 1.0;
+	};
 
-	Scene2D.prototype.Serialize = function () {};
+	Scene2D.prototype.drawCenter = function () {
+		this.context.fillStyle = "#f00";
+		this.context.globalAlpha = 0.5;
+		this.context.fillRect(this.centerX - 5, this.centerY - 5, 10, 10);
+		this.context.globalAlpha = 1.0;
+	};
+
+	Scene2D.prototype.drawVertex = function (_vertex) {
+		this.context.fillStyle = "#000";
+
+		this.context.fillRect(_vertex.getX(), _vertex.getY(), 1, 1);
+
+		if (vertex.getSelected()) {
+			this.context.globalAlpha = 0.5;
+
+			this.context.fillStyle = this.selectionColor;
+			this.context.fillRect(_vertex.getX()-5, _vertex.getY()-5, 10, 10);
+
+			this.context.globalAlpha = 1.0;
+		}
+	};
+
+	Scene2D.prototype.drawEdge = function (_edge) {
+		var begin = _edge.getBegin();
+		var end = _edge.getEnd();
+
+		this.context.globalAlpha = 1.0;
+		this.context.fillStyle = this.strokeColor;
+
+		this.context.beginPath();
+
+		this.context.moveTo(begin.getX(), begin.getY());
+		this.context.lineTo(end.getX(), end.getY());
+
+		this.context.stroke();
+	};
+
+	Scene2D.prototype.drawPolygon = function (_polygon) {
+		var points = _polygon.getPoints();
+
+		var i;
+
+		for (i=0; i<points.lenght-1; i++) {
+			var begin = points[i];
+			var end = points[i+1];
+
+			var edge = new Edge2D(begin, end, -1, -1);
+
+			this.drawEdge(edge);
+		}
+	};
+
+	Scene2D.prototype.drawVertexes = function () {
+		var i;
+
+		for (i=0; i<this.vertexes.lenght; i++) {
+			var vertex = this.vertexes[i];
+
+			this.drawVertex(vertex);
+		}
+	};
+
+	Scene2D.prototype.drawEdges = function () {
+		var i;
+
+		for (i=0; i<this.edges.lenght; i++) {
+			var edge = this.edges[i];
+
+			this.drawEdge(edge);
+		}
+	};
+
+	Scene2D.prototype.drawPolygons = function () {
+		var i;
+
+		for (i=0; i< this.polygons.lenght; i++) {
+			var polygon = this.polygons[i];
+
+			this.drawPolygon(polygon);
+		}
+	};
+
+	Scene2D.prototype.Run = function () {
+		this.clear();
+		this.drawUserWorkspace();
+		this.drawVertexes();
+		this.drawEdges();
+		this.drawPolygons();
+	};
+
+	Scene2D.prototype.Serialize = function () {
+		return "Scene2D{}";
+	};
 
 	return Scene2D;
 }());
