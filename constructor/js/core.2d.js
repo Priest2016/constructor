@@ -410,6 +410,14 @@ var Scene2D = (function () {
 	 * param      {number}                   _height                    {height for canvas}
 	 */
 	function Scene2D (_id, _width, _height) {
+		this.vertexes = [];
+		this.edges  = [];
+		this.polygons = [];
+
+		this.vertexesCount = 0;
+		this.edgesCount = 0;
+		this.polygonsCount = 0;
+
 		this.id = _id;
 		this.width = _width;
 		this.height = _height;
@@ -417,10 +425,6 @@ var Scene2D = (function () {
 		this.canvas.width = this.width;
 		this.canvas.height = this.height;
 		this.context = this.canvas.getContext('2d');
-
-		this.vertexes = [];
-		this.edges  = [];
-		this.polygons = [];
 
 		this.centerX = Math.round(this.width / 2);
 		this.centerY = Math.round(this.height / 2);
@@ -434,7 +438,9 @@ var Scene2D = (function () {
 	}
 
 	Scene2D.prototype.addVertex = function (_x, _y) {
-		this.vertexes[this.vertexes.lenght] = new Vertex2D(_x, _y);
+		this.vertexes.push(new Vertex2D(_x, _y));
+		this.vertexesCount += 1;
+		// this.vertexes[this.vertexes.lenght] = new Vertex2D(_x, _y);
 	};
 
 	/* Сначала добавляются точки для отрезка
@@ -445,10 +451,16 @@ var Scene2D = (function () {
 		this.addVertex(_begin[0], _begin[1]);
 		this.addVertex(_end[0], _end[1]);
 
-		this.edges[this.edges.lenght] = new Edge2D(this.vertexes[this.vertexes.lenght-2],
-												   this.vertexes[this.vertexes.lenght-1],
-												   this.vertexes.lenght-2,
-												   this.vertexes.lenght-1);
+		this.edges.push(new Edge2D(this.vertexes[this.vertexesCount-2],
+								   this.vertexes[this.vertexesCount-1],
+								   this.vertexesCount-2,
+								   this.vertexesCount-1));
+		this.edgesCount += 1;
+
+		// this.edges[this.edges.lenght] = new Edge2D(this.vertexes[this.vertexes.lenght-2],
+		// 										   this.vertexes[this.vertexes.lenght-1],
+		// 										   this.vertexes.lenght-2,
+		// 										   this.vertexes.lenght-1);
 	};
 
 	/* Создаются точки, которые в последствии передаются в конструктор
@@ -456,7 +468,7 @@ var Scene2D = (function () {
 	   мы сразу редактируем полигон */
 	Scene2D.prototype.addPolygon = function (_points) {
 		var i;
-		var vertexesStartPosition = this.vertexes.lenght;
+		var vertexesStartPosition = this.vertexesCount;
 		var vertexes = [];
 		var vertexesPositions = [];
 
@@ -466,15 +478,16 @@ var Scene2D = (function () {
 			this.addVertex(point[0], point[1]);
 		}
 
-		for (i=vertexesStartPosition; i<this.vertexes.lenght-1; i++) {
-			this.edges[this.edges.lenght] = new Edge2D(this.vertexes[i], this.vertexes[i+1], i, i+1);
+		for (i=vertexesStartPosition; i<this.vertexesCount-1; i++) {
+			this.edges[this.edgesCount] = new Edge2D(this.vertexes[i], this.vertexes[i+1], i, i+1);
 			vertexes[vertexes.lenght] = this.vertexes[i];
 			vertexesPositions[vertexesPositions.lenght] = i;
 		}
-		vertexes[vertexes.lenght] = this.vertexes[this.vertexes.lenght-1];
+		vertexes[vertexes.lenght] = this.vertexes[this.vertexesCount-1];
 		vertexesPositions[vertexesPositions.lenght] = this.vertexes.lenght-1;
 
-		this.polygons[this.polygons.lenght] = new Polygon2D(vertexes, vertexesPositions);
+		this.polygons[this.polygonsCount] = new Polygon2D(vertexes, vertexesPositions);
+		this.polygonsCount += 1;
 	};
 
 	Scene2D.prototype.setBackground = function (_background) {
@@ -897,7 +910,7 @@ var Scene2D = (function () {
 
 	// ну а тут по названиям понятно что куда
 	Scene2D.prototype.drawBackground = function () {
-		this.context.fillStyle = this.background;
+		this.context.fillStyle = this.backgroundColor;
 		this.context.fillRect(0, 0, this.width, this.height);
 	};
 
@@ -940,7 +953,7 @@ var Scene2D = (function () {
 
 		this.context.fillRect(_vertex.getX(), _vertex.getY(), 1, 1);
 
-		if (vertex.getSelected()) {
+		if (_vertex.getSelected()) {
 			this.context.globalAlpha = 0.5;
 
 			this.context.fillStyle = this.selectionColor;
@@ -983,7 +996,7 @@ var Scene2D = (function () {
 	Scene2D.prototype.drawVertexes = function () {
 		var i;
 
-		for (i=0; i<this.vertexes.lenght; i++) {
+		for (i=0; i<this.vertexesCount; i++) {
 			var vertex = this.vertexes[i];
 
 			this.drawVertex(vertex);
@@ -993,7 +1006,7 @@ var Scene2D = (function () {
 	Scene2D.prototype.drawEdges = function () {
 		var i;
 
-		for (i=0; i<this.edges.lenght; i++) {
+		for (i=0; i<this.edgesCount; i++) {
 			var edge = this.edges[i];
 
 			this.drawEdge(edge);
@@ -1003,7 +1016,7 @@ var Scene2D = (function () {
 	Scene2D.prototype.drawPolygons = function () {
 		var i;
 
-		for (i=0; i< this.polygons.lenght; i++) {
+		for (i=0; i< this.polygonsCount; i++) {
 			var polygon = this.polygons[i];
 
 			this.drawPolygon(polygon);
@@ -1012,7 +1025,9 @@ var Scene2D = (function () {
 
 	Scene2D.prototype.Run = function () {
 		this.clear();
-		this.drawUserWorkspace();
+		this.drawBackground();
+		this.drawGrid();
+		this.drawCenter();
 		this.drawVertexes();
 		this.drawEdges();
 		this.drawPolygons();
@@ -1024,3 +1039,10 @@ var Scene2D = (function () {
 
 	return Scene2D;
 }());
+
+var scene = new Scene2D('canvas', 800, 600);
+scene.setBackground("#fff");
+scene.addVertex(50, 50);
+scene.addVertex(50, 500);
+scene.addVertex(50, 500);
+scene.Run();
