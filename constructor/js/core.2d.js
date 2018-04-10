@@ -1435,6 +1435,7 @@ var Scene2D = (function () {
 	};
 
 	Scene2D.prototype.Run = function () {
+		this.setSelectedPoints();
 		this.clear();
 		this.drawBackground();
 		this.drawGrid();
@@ -1525,9 +1526,11 @@ function mouseMoveHandler(event) {
 			positions = scene.getSelectionPolygonsNumbers();
 
 			var points = -1;
+			var pCenter;
 
 			for (i=0; i<positions.length; i++) {
 				points = scene.polygons[positions[i]].points.length;
+				pCenter = scene.polygons[positions[i]].getCenter();
 			}
 
 			if (points != -1) {
@@ -1537,6 +1540,7 @@ function mouseMoveHandler(event) {
 				ObjectParameters += "Vertexes Count: " + String(0) + "<br>";
 				ObjectParameters += "Edges Count: " + String(0) + "<br>";
  			}
+			ObjectParameters += "<b>Center </b> {"+String(pCenter.getX())+", "+String(pCenter.getY())+"}<br>";
 
 			ObjectParameters += "Name: <input type=\"text\" id=\"name\" onchange=\"changeName()\">";
 		} else if (objectType == "E") {
@@ -1547,6 +1551,7 @@ function mouseMoveHandler(event) {
 			var begin;
 			var end;
 			var length;
+			var eCenter;
 
 			for (i=0; i<positions.length; i++) {
 				var edge = scene.edges[positions[i]];
@@ -1554,10 +1559,12 @@ function mouseMoveHandler(event) {
 				begin = edge.getBegin();
 				end = edge.getEnd();
 				length = edge.getlength();
+				eCenter = edge.getCenter();
 			}
 			ObjectParameters += "<b>Begin</b> "+"X:"+String(begin.getX())+" Y:"+String(begin.getY())+"<br>";
 			ObjectParameters += "<b>End</b> "+"X:"+String(end.getX())+" Y:"+String(end.getY())+"<br>";
-			ObjectParameters += "<b>Length</b> "+String(length)+"<br>";
+			ObjectParameters += "<b>Length </b> "+String(length)+"<br>";
+			ObjectParameters += "<b>Center </b> {"+String(eCenter.getX())+", "+String(eCenter.getY())+"}<br>";
 		} else if (objectType == "V") {
 			ObjectParameters += "Vertex <br>";
 
