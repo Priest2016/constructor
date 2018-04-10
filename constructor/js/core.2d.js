@@ -1512,6 +1512,80 @@ function mouseMoveHandler(event) {
 		}
 	}
 
+	if (scene.getSelectionObjectsStatus()) {
+		var ObjectParameters = "";
+		var objectType = scene.getSelectedObjectType();
+
+		var i;
+		var positions = -1;
+
+		if (objectType == "P") {
+			ObjectParameters += "Polygon <br>";
+
+			positions = scene.getSelectionPolygonsNumbers();
+
+			var points = -1;
+
+			for (i=0; i<positions.length; i++) {
+				points = scene.polygons[positions[i]].points.length;
+			}
+
+			if (points != -1) {
+				ObjectParameters += "Vertexes Count: " + String(points) + "<br>";
+				ObjectParameters += "Edges Count: " + String(points) + "<br>";
+ 			} else {
+				ObjectParameters += "Vertexes Count: " + String(0) + "<br>";
+				ObjectParameters += "Edges Count: " + String(0) + "<br>";
+ 			}
+
+			ObjectParameters += "Name: <input type=\"text\" id=\"name\" onchange=\"changeName()\">";
+		} else if (objectType == "E") {
+			ObjectParameters += "Edge <br>";
+
+			positions = scene.getSelectionEdgesNumbers();
+
+			var begin;
+			var end;
+			var length;
+
+			for (i=0; i<positions.length; i++) {
+				var edge = scene.edges[positions[i]];
+
+				begin = edge.getBegin();
+				end = edge.getEnd();
+				length = edge.getlength();
+			}
+			ObjectParameters += "<b>Begin</b> "+"X:"+String(begin.getX())+" Y:"+String(begin.getY())+"<br>";
+			ObjectParameters += "<b>End</b> "+"X:"+String(end.getX())+" Y:"+String(end.getY())+"<br>";
+			ObjectParameters += "<b>Length</b> "+String(length)+"<br>";
+		} else if (objectType == "V") {
+			ObjectParameters += "Vertex <br>";
+
+			positions = scene.getSelectionVertexesNumbers();
+
+			var x = 0;
+			var y = 0;
+
+			for (i=0; i<positions.length; i++) {
+				var vertex = scene.vertexes[positions[i]];
+				console.log(i, vertex);
+
+				x = vertex.getX();
+				y = vertex.getY();
+			}
+
+			ObjectParameters += "<b>X</b> "+String(x)+"<br>";
+			ObjectParameters += "<b>Y</b> "+String(y)+"<br>";
+		}
+
+
+		var element = document.getElementById('objectType');
+		element.innerHTML = ObjectParameters;
+	} else {
+		var element = document.getElementById('objectType');
+		element.innerHTML = "";
+	}
+
 	scene.Run();
 }
 
