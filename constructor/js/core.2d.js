@@ -130,6 +130,7 @@ var Edge2D = (function () {
 
 		this.selected = true;
 		this.draging = false;
+		this.scalable = false;
 
 		this.selectedPoints = [];
 		this.setSelectedPoints();
@@ -199,6 +200,10 @@ var Edge2D = (function () {
 		return this.draging;
 	};
 
+	Edge2D.prototype.getScalable = function () {
+		return this.scalable;
+	};
+
 	Edge2D.prototype.setBegin = function (_begin) {
 		this.begin = _begin;
 	};
@@ -223,6 +228,10 @@ var Edge2D = (function () {
 		this.draging = _draging;
 	};
 
+	Edge2D.prototype.setScalable = function (_scalable) {
+		this.scalable = _scalable;
+	};
+
 	Edge2D.prototype.enableSelected = function () {
 		if (!this.getSelected()) {
 			this.setSelected(true);
@@ -232,6 +241,12 @@ var Edge2D = (function () {
 	Edge2D.prototype.enableDraging = function () {
 		if (!this.getDraging()) {
 			this.setDraging(true);
+		}
+	};
+
+	Edge2D.prototype.enableScalable = function () {
+		if (!this.getScalable()) {
+			this.setScalable(true);
 		}
 	};
 
@@ -247,6 +262,12 @@ var Edge2D = (function () {
 		}
 	};
 
+	Edge2D.prototype.disableScalable = function () {
+		if (this.getScalable()) {
+			this.setScalable(false);
+		}
+	};
+
 	Edge2D.prototype.Serialize = function () {
 		return "Edge2D{}};"
 	};
@@ -258,19 +279,26 @@ var Edge2D = (function () {
  * class      Polygon2D
  * param      {Vertex2D[]}    points                   {points for polygon}
  * param      {number[]}      pointsPositions          {points positions for polygon on Scene2D.vertexes}
+ * param      {string}        name                     {name for polygon}
  */
 var Polygon2D = (function () {
 	/*
 	 * constructor Polygon2D
 	 * param      {Vertex2D[]}    _points              {points for polygon}
 	 * param      {number[]}      _pointsPositions     {points positions for polygon on Scene2D.vertexes}
+	 * param      {string}        _name                {name for polygon}
 	 */
-	function Polygon2D (_points, _pointsPositions) {
+	function Polygon2D (_points, _pointsPositions, _name) {
 		this.points = _points;
 		this.pointsPositions = _pointsPositions;
 
 		this.selected = true;
 		this.draging = false;
+		this.scalable = false;
+
+		if (_name != "" || _name) {
+			this.name = _name;
+		}
 
 		this.selectedPoints = [];
 		this.setSelectedPoints();
@@ -318,12 +346,20 @@ var Polygon2D = (function () {
 		return this.pointsPositions;
 	};
 
+	Polygon2D.prototype.getName = function () {
+		return this.name;
+	};
+
 	Polygon2D.prototype.getSelected = function () {
 		return this.selected;
 	};
 
 	Polygon2D.prototype.getDraging = function () {
 		return this.draging;
+	};
+
+	Polygon2D.prototype.getScalable = function () {
+		return this.scalable;
 	};
 
 	Polygon2D.prototype.setPoints = function (_points) {
@@ -334,12 +370,20 @@ var Polygon2D = (function () {
 		this.pointsPositions = _pointsPositions;
 	};
 
+	Polygon2D.prototype.setName = function (_name) {
+		this.name = _name;
+	};
+
 	Polygon2D.prototype.setSelected = function (_selected) {
 		this.selected = _selected;
 	};
 
 	Polygon2D.prototype.setDraging = function (_draging) {
 		this.draging = _draging;
+	};
+
+	Polygon2D.prototype.setScalable = function (_scalable) {
+		this.scalable = _scalable;
 	};
 
 	Polygon2D.prototype.enableSelected = function () {
@@ -354,6 +398,12 @@ var Polygon2D = (function () {
 		}
 	};
 
+	Polygon2D.prototype.enableScalable = function () {
+		if (!this.getScalable()) {
+			this.setScalable(true);
+		}
+	};
+
 	Polygon2D.prototype.disableSelected = function () {
 		if (this.getSelected()) {
 			this.setSelected(false);
@@ -363,6 +413,12 @@ var Polygon2D = (function () {
 	Polygon2D.prototype.disableDraging = function () {
 		if (this.getDraging()) {
 			this.setDraging(false);
+		}
+	};
+
+	Polygon2D.prototype.disableScalable = function () {
+		if (this.getScalable()) {
+			this.setScalable(false);
 		}
 	};
 
@@ -688,7 +744,7 @@ var Scene2D = (function () {
 		vertexes.push(this.vertexes[this.vertexesCount-1]);
 		vertexesPositions.push(this.vertexesCount-1);
 
-		this.polygons.push(new Polygon2D(vertexes, vertexesPositions));
+		this.polygons.push(new Polygon2D(vertexes, vertexesPositions, "Polygon "+String(this.polygonsCount)));
 		this.polygonsCount += 1;
 	};
 
@@ -739,7 +795,7 @@ var Scene2D = (function () {
 	};
 
 	Scene2D.prototype.getCenter = function () {
-		return this.center;
+		return new Vertex2D(this.centerX, this.centerY);
 	};
 
 	// получаем данные о том, есть ли на сцене выделенные объекты
@@ -973,6 +1029,74 @@ var Scene2D = (function () {
 		return [];
 	};
 
+	Scene2D.prototype.getScalingObjectsStatus = function () {
+		if (this.getScalingEdgesStatus() || this.getScalingPolygonsStatus()) {
+			return true;
+		}
+
+		return false;
+	};
+
+	Scene2D.prototype.getScalingObjectType = function () {
+		if (this.getScalingPolygonsStatus()) {
+			return "P";
+		} else if (this.getScalingEdgesStatus()) {
+			return "E";
+		}
+
+		return false;
+	};
+
+	Scene2D.prototype.getScalingEdgesStatus = function () {
+		var i;
+
+		for (i=0; i<this.edges.length; i++) {
+			if (this.edges[i].getScalable()) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	Scene2D.prototype.getScalingPolygonsStatus = function () {
+		var i;
+
+		for (i=0; i<this.polygons.length; i++) {
+			if (this.polygons[i].getScalable()) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	Scene2D.prototype.getScalingEdgesNumbers = function () {
+		var i;
+		var scalableEdges = [];
+
+		for (i=0; i<this.edges.length; i++) {
+			if (this.edges[i].getScalable()) {
+				scalableEdges[scalableEdges.length] = i;
+			}
+		}
+
+		return scalableEdges;
+	};
+
+	Scene2D.prototype.getScalingPolygonsNumbers = function () {
+		var i;
+		var scalablePolygons = [];
+
+		for (i=0; i<this.polygons.length; i++) {
+			if (this.polygons[i].getScalable()) {
+				scalablePolygons[scalablePolygons.length] = i;
+			}
+		}
+
+		return scalablePolygons;
+	};
+
 	// ну тут по названиям понятно, практически дубли методов первых трех классов
 	Scene2D.prototype.enableSelectionVertex = function (_vertexPosition) {
 		if (_vertexPosition < this.vertexes.length) {
@@ -1010,6 +1134,18 @@ var Scene2D = (function () {
 		}
 	};
 
+	Scene2D.prototype.enableScalableEdge = function (_edgePosition) {
+		if (_edgePosition < this.edges.length) {
+			this.edges[_edgePosition].enableScalable();
+		}
+	};
+
+	Scene2D.prototype.enableScalablePolygon = function (_polygonPosition) {
+		if (_polygonPosition < this.polygons.length) {
+			this.polygons[_pointsPositions].enableScalable();
+		}
+	};
+
 	Scene2D.prototype.disableSelectionVertex = function (_vertexPosition) {
 		if (_vertexPosition < this.vertexes.length) {
 			this.vertexes[_vertexPosition].disableSelected();
@@ -1044,6 +1180,18 @@ var Scene2D = (function () {
 	Scene2D.prototype.disableDragingPolygon = function (_polygonPosition) {
 		if (_polygonPosition < this.polygons.length) {
 			this.polygons[_polygonPosition].disableDraging();
+		}
+	};
+
+	Scene2D.prototype.disableScalableEdge = function (_edgePosition) {
+		if (_edgePosition < this.edges.length) {
+			this.edges[_edgePosition].disableScalable();
+		}
+	};
+
+	Scene2D.prototype.disableScalablePolygon = function (_polygonPosition) {
+		if (_polygonPosition < this.polygons.length) {
+			this.polygons[_pointsPositions].disableScalable();
 		}
 	};
 
@@ -1113,6 +1261,19 @@ var Scene2D = (function () {
 		}
 	};
 
+	Scene2D.prototype.scalingEdge = function (_edgePosition, _x, _y) {
+		if (_edgePosition < this.edges.length) {
+			var edgeCenter = this.edges[_edgePosition].getCenter();
+
+			var deltaEdge = new Edge2D(edgeCenter, new Vertex2D(_x, _y), -1, -1);
+			var delta = Math.round(deltaEdge.getlength() / 10);
+		}
+	};
+
+	Scene2D.prototype.scalingPolygon = function () {};
+
+	// FIXME
+	// Придумай уже что с ними делать!!!
 	Scene2D.prototype.moveVertexes = function (_vertexesPositions, _x, _y) {};
 
 	Scene2D.prototype.moveEdges = function () {};
@@ -1170,6 +1331,12 @@ var Scene2D = (function () {
 		this.context.globalAlpha = 1.0;
 	};
 
+	Scene2D.prototype.drawText = function (_text, _x, _y) {
+		this.context.fillStyle = this.strokeStyle;
+		this.context.fontSize = 30;
+        this.context.fillText(_text, _x, _y);
+	};
+
 	Scene2D.prototype.drawVertex = function (_vertex) {
 		this.context.fillStyle = "#000";
 
@@ -1199,6 +1366,8 @@ var Scene2D = (function () {
 
 		this.context.stroke();
 
+		this.drawText(String(_edge.getlength()), _edge.getCenter().getX()-10, _edge.getCenter().getY()-10);
+
 		if (_edge.getSelected()) {
 			this.context.fillStyle = "#f0f";
 			this.context.globalAlpha = 0.5;
@@ -1220,13 +1389,18 @@ var Scene2D = (function () {
 			edge.disableSelected();
 
 			this.drawEdge(edge);
-			
-			if (_polygon.getSelected()) {
-				this.context.fillStyle = "#0ff";
-				this.context.globalAlpha = 0.5;
-				this.context.fillRect(_polygon.getCenter().getX()-5, _polygon.getCenter().getY()-5, 10, 10);
-				this.context.globalAlpha = 1.0;
-			}
+		}
+
+		var name = _polygon.getName();
+		var center = _polygon.getCenter();
+
+		this.drawText(name, center.getX()-(name.length * 2), center.getY()-10);
+
+		if (_polygon.getSelected()) {
+			this.context.fillStyle = "#0ff";
+			this.context.globalAlpha = 0.5;
+			this.context.fillRect(_polygon.getCenter().getX()-5, _polygon.getCenter().getY()-5, 10, 10);
+			this.context.globalAlpha = 1.0;
 		}
 	};
 
@@ -1268,6 +1442,21 @@ var Scene2D = (function () {
 		this.drawVertexes();
 		this.drawEdges();
 		this.drawPolygons();
+
+		if (this.getSelectionPolygonsStatus()) {
+			var positions = this.getSelectionPolygonsNumbers();
+
+			var i;
+
+			var inpt = document.getElementById('name');
+
+			for (i=0; i<positions.length; i++) {
+				inpt.value = this.polygons[positions[i]].getName();
+			}
+		} else {
+			var inpt = document.getElementById('name');
+			inpt.value = "";
+		}
 	};
 
 	Scene2D.prototype.Serialize = function () {
@@ -1277,9 +1466,21 @@ var Scene2D = (function () {
 	return Scene2D;
 }());
 
+var Converter = (function () {
+	function Converter(_scene2d) {
+		this.Scene2D = _scene2d;
+	}
+
+	Converter.prototype.convertPolygons = function () {};
+
+	Converter.prototype.changeCoordinateSystem = function () {};
+
+	return Converter;
+}());
+
 function onclickHandler(event) {
-	var x = event.clientX;
-	var y = event.clientY;
+	var x = event.layerX;
+	var y = event.layerY;
 	onclickEventer(x, y); 
 }
 
@@ -1294,19 +1495,19 @@ function mouseMoveHandler(event) {
 			positions = scene.getDragingPolygonsNumbers();
 
 			for (i=0; i<positions.length; i++) {
-				scene.movePolygon(positions[i], event.clientX, event.clientY);
+				scene.movePolygon(positions[i], event.layerX, event.layerY);
 			}
 		} else if (objectType == "E") {
 			positions = scene.getDragingEdgesNumbers();
 
 			for (i=0; i<positions.length; i++) {
-				scene.moveEdge(positions[i], event.clientX, event.clientY);
+				scene.moveEdge(positions[i], event.layerX, event.layerY);
 			}
 		} else if (objectType == "V") {
 			positions = scene.getDragingVertexesNumbers();
 			
 			for (i=0; i<positions.length; i++) {
-				scene.moveVertex(positions[i], event.clientX, event.clientY);
+				scene.moveVertex(positions[i], event.layerX, event.layerY);
 			}
 		}
 	}
@@ -1314,11 +1515,25 @@ function mouseMoveHandler(event) {
 	scene.Run();
 }
 
+function changeName() {
+	console.log("inpt");
+	var inpt = document.getElementById('name');
+	if (scene.getSelectionPolygonsStatus()) {
+		var positions = scene.getSelectionPolygonsNumbers();
+
+		var i;
+
+		for (i=0; i<positions.length; i++) {
+			scene.polygons[positions[i]].setName(inpt.value);
+		}
+	}
+	scene.Run();
+}
+
 window.onkeyup = KeyboardHandler;
 
 var scene = new Scene2D('canvas', 800, 600);
 scene.setBackground("#fff");
-scene.addPolygon([[20, 10], [100, 10], [250, 100], [10, 100]]);
 scene.disableAllSelected();
 scene.Run();
 
@@ -1340,6 +1555,28 @@ function onclickEventer (x, y) {
 	}
 }
 
+function addPolygonAsElement(number) {
+	var x = scene.getCenter().getX();
+	var y = scene.getCenter().getY();
+	if (number == 1) {
+		scene.addPolygon([[x-200, y-200], [x+200, y-200], [x+200, y+200], [x-200, y+200]]);
+	} else if (number == 2) {
+		scene.addPolygon([[x-200, y-100], [x+200, y-100], [x+200, y+100], [x-200, y+100]]);
+	} else if (number == 3) {
+		scene.addPolygon([[x, y-200], [x+200, y-200], [x+200, y+200], [x-200, y+200], [x-200, y], [x, y]]);
+	} else if (number == 4) {
+		scene.addPolygon([[x, y-200], [x, y], [x+200, y], [x+200, y+200], [x-200, y+200], [x-200, y-200]]);
+	} else if (number == 5) {
+		scene.addPolygon([[x-200, y-200], [x+200, y-200], [x+200, y+200], [x, y+200], [x, y], [x-200, y]]);
+	} else if (number == 6) {
+		scene.addPolygon([[x-200, y-200], [x+200, y-200], [x+200, y], [x, y], [x, y+200], [x-200, y+200]]);
+	}
+
+	scene.disableAllSelected();
+	scene.enableSelectionPolygon(scene.polygonsCount-1);
+	scene.Run();
+}
+
 function KeyboardHandler(event) {
 	var key = String.fromCharCode(event.keyCode || event.charCode);
 
@@ -1349,6 +1586,7 @@ function KeyboardHandler(event) {
 			
 			var i;
 			var positions = -1;
+
 			if (objectType == "P") {
 				positions = scene.getSelectionPolygonsNumbers();
 
@@ -1366,6 +1604,27 @@ function KeyboardHandler(event) {
 
 				for (i=0; i<positions.length; i++) {
 					scene.enableDragingVertex(positions[i]);
+				}
+			}
+		}
+	} else if (key == "S") {
+		if (scene.getSelectionObjectsStatus()) {
+			var objectType = scene.getSelectedObjectType();
+
+			var i;
+			var positions = -1;
+
+			if (objectType == "P") {
+				positions = scene.getSelectionPolygonsNumbers();
+
+				for (i=0; i<positions.length; i++) {
+					scene.enableScalablePolygon(positions[i]);
+				}
+			} else if (objectType == "E") {
+				positions = scene.getSelectionEdgesNumbers();
+
+				for (i=0; i<positions.length; i++) {
+					scene.enableScalableEdge(positions[i]);
 				}
 			}
 		}

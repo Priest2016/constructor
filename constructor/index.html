@@ -3,11 +3,21 @@
 	<head>
 		<title>Constructor</title>
 		<meta charset="utf-8">
-		<!-- <link rel="stylesheet" href="css/userstyle.css"> -->
+		<link rel="stylesheet" href="css/style.css">
 	</head>
 	<body>
-		<canvas id="canvas" width="600", height="600"></canvas>
+		<canvas id="canvas" width="600" height="600"></canvas>
+		<canvas id="3d" width="200" height="200"></canvas>
+		<div>
+			<img src="images/square.png" alt="" onclick="addPolygonAsElement(1)">
+			<img src="images/pr.png" alt="" onclick="addPolygonAsElement(2)">
+			<img src="images/1.png" alt="" onclick="addPolygonAsElement(3)">
+			<img src="images/2.png" alt="" onclick="addPolygonAsElement(4)">
+			<img src="images/3.png" alt="" onclick="addPolygonAsElement(5)">
+			<img src="images/4.png" alt="" onclick="addPolygonAsElement(6)">
+		</div>
+		<input type="text" id="name" onchange="changeName()"><br><br>
+		<input type="submit" value="render!">
 		<script type="text/javascript" src="js/core.2d.js"></script>
-		<!-- <script type="text/javascript" src="js/backup.js"></script> -->
 	</body>
 </html>
