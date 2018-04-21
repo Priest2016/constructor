@@ -2,6 +2,9 @@ var Scene2D = (function () {
 	function Scene2D(_id, _width, _height) {
 		this.width = _width;
 		this.height = _height;
+
+		this.center = [this.width / 2, this.height / 2];
+
 		this.stage = new Konva.Stage({
 			container: _id,
 			width: _width,
@@ -33,7 +36,7 @@ var Scene2D = (function () {
 				stroke: 'black',
 				lineCap: 'round',
 				opacity: 1.0,
-				points: [0, i, this.height, i]
+				points: [i, 0, i, this.height]
 			});
 
 			this.gridLayer.add(line);
@@ -45,7 +48,7 @@ var Scene2D = (function () {
 				stroke: 'black',
 				lineCap: 'round',
 				opacity: 1.0,
-				points: [j, 0, j, this.width]
+				points: [0, j, this.width, j]
 			});
 
 			this.gridLayer.add(line);
@@ -176,9 +179,46 @@ var Scene2D = (function () {
 	return Scene2D;
 }());
 
-var s = new Scene2D('canvas', 800, 800);
-// s.buildVertex(10, 10);
-// s.buildVertex(20, 20);
-// s.buildEdge([30, 30], [40, 40]);
+var s = new Scene2D('canvas', 800, 600);
 
-s.buildPoygon([[10, 10], [10, 100], [100, 100], [250, 200]]);
+function addPolygonAsElement(elementNumber) {
+	if (elementNumber == 1) {
+		s.buildPoygon([[s.center[0]-200, s.center[1]-200], 
+					   [s.center[0]+200, s.center[1]-200], 
+					   [s.center[0]+200, s.center[1]+200], 
+					   [s.center[0]-200, s.center[1]+200]]);
+	} else if (elementNumber == 2) {
+		s.buildPoygon([[s.center[0]-300, s.center[1]-200], 
+					   [s.center[0]+300, s.center[1]-200], 
+					   [s.center[0]+300, s.center[1]+200], 
+					   [s.center[0]-300, s.center[1]+200]]);
+	} else if (elementNumber == 3) {
+		s.buildPoygon([[s.center[0], s.center[1]-200], 
+					   [s.center[0]+200, s.center[1]-200], 
+					   [s.center[0]+200, s.center[1]+200], 
+					   [s.center[0]-200, s.center[1]+200], 
+					   [s.center[0]-200, s.center[1]], 
+					   [s.center[0], s.center[1]]]);
+	} else if (elementNumber == 4) {
+		s.buildPoygon([[s.center[0], s.center[1]-200], 
+					   [s.center[0], s.center[1]], 
+					   [s.center[0]+200, s.center[1]], 
+					   [s.center[0]+200, s.center[1]+200], 
+					   [s.center[0]-200, s.center[1]+200], 
+					   [s.center[0]-200, s.center[1]-200]]);
+	} else if (elementNumber == 5) {
+		s.buildPoygon([[s.center[0], s.center[1]], 
+					   [s.center[0]-200, s.center[1]], 
+					   [s.center[0]-200, s.center[1]-200], 
+					   [s.center[0]+200, s.center[1]-200], 
+					   [s.center[0]+200, s.center[1]+200], 
+					   [s.center[0], s.center[1]+200]]);
+	} else if (elementNumber == 6) {
+		s.buildPoygon([[s.center[0], s.center[1]], 
+					   [s.center[0], s.center[1]+200], 
+					   [s.center[0]-200, s.center[1]+200], 
+					   [s.center[0]-200, s.center[1]-200], 
+					   [s.center[0]+200, s.center[1]-200], 
+					   [s.center[0]+200, s.center[1]]]);
+	}
+}
