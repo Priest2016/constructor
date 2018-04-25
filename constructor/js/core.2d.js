@@ -16,18 +16,70 @@ var Scene2D = (function () {
 		this.edgesLayer = new Konva.Layer();
 		this.polygonsLayer = new Konva.Layer();
 		this.polygonsEdgesCentersLayer = new Konva.Layer();
+		this.buttonsLayer = new Konva.Layer();
 
 		this.stage.add(this.gridLayer);
 		this.stage.add(this.polygonsLayer);
 		this.stage.add(this.edgesLayer);
 		this.stage.add(this.vertexesLayer);
 		this.stage.add(this.polygonsEdgesCentersLayer);
+		this.stage.add(this.buttonsLayer);
 
 		this.vertexesCount = 0;
 		this.edgesCount = 0;
 		this.polygonsCount = 0;
 		this.drawGrid();
+		this.createButtons();
+
+		this.selectedEdge = -1;
 	}
+
+	Scene2D.prototype.createButtons = function () {
+		var group = new Konva.Group({
+			x: 100,
+			y: 100
+		});
+		
+		var Plus = new Konva.Circle({
+			x: 50,
+			y: 50,
+			radius: 20,
+			strokeWidth: 2,
+			stroke: 'blue',
+			fill: 'green',
+		});
+
+		var Minus = new Konva.Circle({
+			x: 150,
+			y: 50,
+			radius: 20,
+			strokeWidth: 2,
+			stroke: 'red',
+			fill: 'green',
+		});
+
+		Plus.on('click', function () {
+			if (s.selectedEdge != -1) {
+				s.edgesLayer.children[s.selectedEdge].setStrokeWidth(s.edgesLayer.children[s.selectedEdge].attrs.strokeWidth+1);
+				s.edgesLayer.draw();
+			}
+		});
+
+		Minus.on('click', function () {
+			if (s.selectedEdge != -1) {
+				s.edgesLayer.children[s.selectedEdge].setStrokeWidth(s.edgesLayer.children[s.selectedEdge].attrs.strokeWidth-1);
+				s.edgesLayer.draw();
+			}
+		});
+
+		group.add(Plus);
+		group.add(Minus);
+
+		this.buttonsLayer.add(group);
+		this.buttonsLayer.children[0].setX(-100);
+		this.buttonsLayer.children[0].setY(-100);
+		this.buttonsLayer.draw();
+	};
 
 	Scene2D.prototype.drawGrid = function () {
 		var dist = 10;
@@ -107,7 +159,8 @@ var Scene2D = (function () {
 		    opacity: 1.0,
 		    points: [0, 0],
 		    beginVertexPosition: beginVertex.attrs.vertexPosition,
-		    endVertexPosition: endVertex.attrs.vertexPosition
+		    endVertexPosition: endVertex.attrs.vertexPosition,
+		    edgeCount: this.edgesLayer.children.length
 		});
 
 		var points = [beginVertex.attrs.x, beginVertex.attrs.y, endVertex.attrs.x, endVertex.attrs.y];
@@ -126,7 +179,15 @@ var Scene2D = (function () {
 				stroke: '#222',
 				strokeWidth: 2,
 				fill: 'red',
-				draggable: true
+				draggable: true,
+				currentCount: this.polygonsEdgesCentersLayer.children.length
+			});
+
+			edgeCenter.on('click', function () {
+				s.buttonsLayer.children[0].setX(this.attrs.x);
+				s.buttonsLayer.children[0].setY(this.attrs.y);
+				s.buttonsLayer.draw();
+				s.selectedEdge = this.attrs.currentCount;
 			});
 
 			this.polygonsEdgesCentersLayer.add(edgeCenter);
@@ -138,15 +199,10 @@ var Scene2D = (function () {
 	Scene2D.prototype.buildPoygon = function (_points) {
 		var vertexesStart = this.vertexesLayer.children.length;
 
-		var forSet = [];
+		var edgesStart = this.edgesLayer.children.length;
 
+		//centers code begin
 		var polygonsEdgesCenters = [];
-
-		for (var i=0; i<_points.length; i++) {
-			this.buildVertex(_points[i][0], _points[i][1]);
-			forSet[forSet.length] = _points[i][0];
-			forSet[forSet.length] = _points[i][1];
-		}
 
 		for (var i=0; i<_points.length-1; i++) {
 			var begin = _points[i];
@@ -157,7 +213,6 @@ var Scene2D = (function () {
 
 			var center = {
 				center: [xCenter, yCenter],
-				pointsPositions: [i, i+1]
 			};
 
 			polygonsEdgesCenters[polygonsEdgesCenters.length] = center;
@@ -171,36 +226,66 @@ var Scene2D = (function () {
 
 		var center = {
 			center: [xCenter, yCenter],
-			pointsPositions: [i, i+1]
 		};
 
 		polygonsEdgesCenters[polygonsEdgesCenters.length] = center;
+		//centers code end
+		
+		// edges code begin
+		var PolygonVertexes = [];
+		for (var i=0; i<_points.length; i++) {
+			var vertex = _points[i];
 
-		console.log(polygonsEdgesCenters);
+			PolygonVertexes[PolygonVertexes.length] = this.buildVertex(vertex[0], vertex[1]);
+		}
 
-		var vertexesEnd = this.vertexesLayer.children.length-1;
+		for (var i=0; i<PolygonVertexes.length-1; i++) {
+			var begin = PolygonVertexes[i];
+			var end = PolygonVertexes[i+1];
 
-		var polygon = new Konva.Line({
+			var edge = new Konva.Line({
+				strokeWidth: 3,
+				stroke: 'black',
+				lineCap: 'round',
+				opacity: 1.0,
+				points: [0, 0],
+				beginVertexPosition: begin.attrs.vertexPosition,
+				endVertexPosition: end.attrs.vertexPosition,
+				edgeCount: this.edgesLayer.children.length
+			});
+
+			var points = [begin.attrs.x, begin.attrs.y, end.attrs.x, end.attrs.y];
+			edge.setPoints(points);
+			this.edgesLayer.add(edge);
+			this.edgesLayer.draw();
+		}
+
+		var begin = PolygonVertexes[PolygonVertexes.length-1];
+		var end = PolygonVertexes[0];
+
+		var edge = new Konva.Line({
 			strokeWidth: 3,
-		    stroke: 'black',
-		    lineCap: 'round',
-		    opacity: 1.0,
-		    points: [0, 0],
-		    closed: true,
-		    startVertexPosition: vertexesStart,
-		    endVertexPosition: vertexesEnd,
-		    centers: polygonsEdgesCenters
+			stroke: 'black',
+			lineCap: 'round',
+			opacity: 1.0,
+			points: [0, 0],
+			beginVertexPosition: begin.attrs.vertexPosition,
+			endVertexPosition: end.attrs.vertexPosition
 		});
 
-		polygon.setPoints(forSet);
+		var points = [begin.attrs.x, begin.attrs.y, end.attrs.x, end.attrs.y];
+		edge.setPoints(points);
+		this.edgesLayer.add(edge);
+		this.edgesLayer.draw();
 
-		this.polygonsLayer.add(polygon);
-		this.polygonsLayer.draw();
+		// edges code end
 
 		this.buildPolygonEdgesCenters(polygonsEdgesCenters);
 	};
 
 	Scene2D.prototype.redrawEdges = function () {
+		this.polygonsEdgesCentersLayer.destroyChildren();
+		this.polygonsEdgesCentersLayer.draw();
 		for (var i=0; i<this.edgesLayer.children.length; i++) {
 			var bp = this.edgesLayer.children[i].attrs.beginVertexPosition;
 			var ep = this.edgesLayer.children[i].attrs.endVertexPosition;
@@ -209,6 +294,17 @@ var Scene2D = (function () {
 						  this.vertexesLayer.children[bp].attrs.y,
 						  this.vertexesLayer.children[ep].attrs.x,
 						  this.vertexesLayer.children[ep].attrs.y];
+			
+			var xCenter = Math.round((this.vertexesLayer.children[bp].attrs.x + this.vertexesLayer.children[ep].attrs.x) / 2);
+			var yCenter = Math.round((this.vertexesLayer.children[bp].attrs.y + this.vertexesLayer.children[ep].attrs.y) / 2);
+
+			var center = {
+				center: [xCenter, yCenter],
+				pointsPositions: [bp, ep]
+			};
+
+			this.buildPolygonEdgesCenters([center]);
+
 			this.edgesLayer.children[i].setPoints(points);
 			this.edgesLayer.draw();
 		}
