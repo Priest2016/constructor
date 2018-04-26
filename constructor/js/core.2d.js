@@ -58,6 +58,24 @@ var Scene2D = (function () {
 			fill: 'green',
 		});
 
+		var Delete = new Konva.Circle({
+			x: 50,
+			y: 100,
+			radius: 20,
+			strokeWidth: 2,
+			stroke: 'green',
+			fill: 'red',
+		});
+
+		var Subdivide = new Konva.Circle({
+			x: 150,
+			y: 100,
+			radius: 20,
+			strokeWidth: 2,
+			stroke: 'yellow',
+			fill: 'red',
+		});
+
 		Plus.on('click', function () {
 			if (s.selectedEdge != -1) {
 				s.edgesLayer.children[s.selectedEdge].setStrokeWidth(s.edgesLayer.children[s.selectedEdge].attrs.strokeWidth+1);
@@ -72,12 +90,28 @@ var Scene2D = (function () {
 			}
 		});
 
+		Delete.on('click', function () {
+			if (s.selectedEdge != -1) {
+				s.deleteCurrentEdge();
+				s.selectedEdge = -1;
+			}
+		});
+
+		Subdivide.on('click', function () {
+			if (s.selectedEdge != -1) {
+				s.subdivideCurrentEdge();
+				s.selectedEdge = -1;
+			}
+		});
+
 		group.add(Plus);
 		group.add(Minus);
+		group.add(Delete);
+		group.add(Subdivide);
 
 		this.buttonsLayer.add(group);
-		this.buttonsLayer.children[0].setX(-100);
-		this.buttonsLayer.children[0].setY(-100);
+		this.buttonsLayer.children[0].setX(-1000);
+		this.buttonsLayer.children[0].setY(-1000);
 		this.buttonsLayer.draw();
 	};
 
@@ -324,6 +358,200 @@ var Scene2D = (function () {
 
 			this.polygonsLayer.children[i].setPoints(positions);
 			this.polygonsLayer.draw();
+		}
+	};
+
+	Scene2D.prototype.deleteCurrentEdge = function () {
+		if (this.selectedEdge != -1) {
+			var edges = [];
+
+			for (var i=0; i<this.selectedEdge; i++) {
+				var e = this.edgesLayer.children[i];
+				var edge = {
+					strokeWidth: e.attrs.strokeWidth,
+					stroke: e.attrs.stroke,
+					lineCap: e.attrs.lineCap,
+					opacity: e.attrs.opacity,
+					points: e.attrs.points,
+					beginVertexPosition: e.attrs.beginVertexPosition,
+		    		endVertexPosition: e.attrs.endVertexPosition
+				}
+
+				edges[edges.length] = edge;
+			}
+
+			for (var i=this.selectedEdge+1; i<this.edgesLayer.children.length; i++) {
+				var e = this.edgesLayer.children[i];
+				var edge = {
+					strokeWidth: e.attrs.strokeWidth,
+					stroke: e.attrs.stroke,
+					lineCap: e.attrs.lineCap,
+					opacity: e.attrs.opacity,
+					points: e.attrs.points,
+					beginVertexPosition: e.attrs.beginVertexPosition,
+		    		endVertexPosition: e.attrs.endVertexPosition
+				}
+
+				edges[edges.length] = edge;
+			}
+
+			console.log(edges.length);
+
+			this.edgesLayer.destroyChildren();
+
+			for (var i=0; i<edges.length; i++) {
+				var edge = new Konva.Line({
+					strokeWidth: edges[i].strokeWidth,
+					stroke: edges[i].stroke,
+					lineCap: edges[i].lineCap,
+					opacity: edges[i].opacity,
+					points: edges[i].points,
+					beginVertexPosition: edges[i].beginVertexPosition,
+					endVertexPosition: edges[i].endVertexPosition,
+					edgeCount: this.edgesLayer.children.length
+				});
+
+				this.edgesLayer.add(edge);
+			}
+
+			this.buttonsLayer.children[0].setX(-1000);
+			this.buttonsLayer.children[0].setY(-1000);
+			this.buttonsLayer.draw();
+
+			this.redrawEdges();
+		}
+	};
+
+	Scene2D.prototype.subdivideCurrentEdge = function () {
+		if (this.selectedEdge != -1) {
+			var edges = [];
+
+			for (var i=0; i<this.selectedEdge; i++) {
+				var e = this.edgesLayer.children[i];
+				
+				var edge = {
+					xBegin: this.vertexesLayer.children[e.attrs.beginVertexPosition].attrs.x,
+					yBegin: this.vertexesLayer.children[e.attrs.beginVertexPosition].attrs.y,
+					xEnd: this.vertexesLayer.children[e.attrs.endVertexPosition].attrs.x,
+					yEnd: this.vertexesLayer.children[e.attrs.endVertexPosition].attrs.y
+				};
+
+				edges[edges.length] = edge;
+			}
+
+			var e = this.edgesLayer.children[this.selectedEdge];
+			var begin = [this.vertexesLayer.children[e.attrs.beginVertexPosition].attrs.x,
+						 this.vertexesLayer.children[e.attrs.beginVertexPosition].attrs.y];
+			var end = [this.vertexesLayer.children[e.attrs.endVertexPosition].attrs.x,
+					   this.vertexesLayer.children[e.attrs.endVertexPosition].attrs.y];
+
+			var xCenter = Math.round((begin[0] + end[0]) / 2);
+			var yCenter = Math.round((begin[1] + end[1]) / 2);
+
+			var edge = {
+				xBegin: begin[0],
+				yBegin: begin[1],
+				xEnd: xCenter,
+				yEnd: yCenter
+			};
+
+			edges[edges.length] = edge;
+
+			var edge = {
+				xBegin: xCenter,
+				yBegin: yCenter,
+				xEnd: end[0],
+				yEnd: end[1]
+			}
+
+			edges[edges.length] = edge;
+
+			for (var i=this.selectedEdge+1; i<this.edgesLayer.children.length; i++) {
+				var e = this.edgesLayer.children[i];
+
+				var edge = {
+					xBegin: this.vertexesLayer.children[e.attrs.beginVertexPosition].attrs.x,
+					yBegin: this.vertexesLayer.children[e.attrs.beginVertexPosition].attrs.y,
+					xEnd: this.vertexesLayer.children[e.attrs.endVertexPosition].attrs.x,
+					yEnd: this.vertexesLayer.children[e.attrs.endVertexPosition].attrs.y
+				};
+
+				edges[edges.length] = edge;
+			}
+
+			this.vertexesLayer.destroyChildren();
+			this.edgesLayer.destroyChildren();
+			this.polygonsEdgesCentersLayer.destroyChildren();
+
+			var centers = [];
+
+			for (var i=0; i<edges.length; i++) {
+				var xCenter = Math.round((edges[i].xBegin + edges[i].xEnd) / 2);
+				var yCenter = Math.round((edges[i].yBegin + edges[i].yEnd) / 2);
+
+				var center = {
+					center: [xCenter, yCenter]
+				};
+
+				centers[centers.length] = center;
+			}
+
+			PolygonVertexes = [];
+
+			console.log('vertexes length', this.vertexesLayer.children.length);
+			this.vertexesCount = 0;
+
+			for (var i=0; i<edges.length; i++) {
+				var e = edges[i];
+
+				PolygonVertexes[PolygonVertexes.length] = this.buildVertex(e.xBegin, e.yBegin);
+			}
+
+			for (var i=0; i<PolygonVertexes.length-1; i++) {
+				var begin = PolygonVertexes[i];
+				var end = PolygonVertexes[i+1];
+
+				console.log(end.attrs.vertexPosition);
+
+				var edge = new Konva.Line({
+					strokeWidth: 3,
+					stroke: 'black',
+					lineCap: 'round',
+					opacity: 1.0,
+					points: [0, 0],
+					beginVertexPosition: begin.attrs.vertexPosition,
+					endVertexPosition: end.attrs.vertexPosition,
+					edgeCount: this.edgesLayer.children.length
+				});
+
+				var points = [begin.attrs.x, begin.attrs.y, end.attrs.x, end.attrs.y];
+				edge.setPoints(points);
+
+				this.edgesLayer.add(edge);
+			}
+
+			var begin = PolygonVertexes[PolygonVertexes.length-1];
+			var end = PolygonVertexes[0];
+
+			var edge = new Konva.Line({
+				strokeWidth: 3,
+				stroke: 'black',
+				lineCap: 'round',
+				opacity: 1.0,
+				points: [0, 0],
+				beginVertexPosition: begin.attrs.vertexPosition,
+				endVertexPosition: end.attrs.vertexPosition
+			});
+			var points = [begin.attrs.x, begin.attrs.y, end.attrs.x, end.attrs.y];
+			edge.setPoints(points);
+
+			this.edgesLayer.add(edge);
+
+			this.buildPolygonEdgesCenters(centers);
+
+			this.vertexesLayer.draw();
+			this.edgesLayer.draw();
+			this.polygonsEdgesCentersLayer.draw();
 		}
 	};
 
